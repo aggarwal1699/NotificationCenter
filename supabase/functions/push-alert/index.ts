@@ -9,10 +9,27 @@ Deno.serve(async (req) => {
   const userClient=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:authHeader}}});
   const {data:{user},error:authError}=await userClient.auth.getUser();
   if(authError||!user) return Response.json({error:"Unauthorized"},{status:401,headers:cors});
-  const {alert_id}=await req.json();
+  const {alert_id,event_type="alert"}=await req.json();
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const {data:alert,error}=await admin.from("alerts").select("*").eq("id",alert_id).single();
-  if(error||!alert||alert.reporter_id!==user.id) return Response.json({error:"Alert not found or not yours"},{status:403,headers:cors});
+  if(error||!alert) return Response.json({error:"Alert not found"},{status:404,headers:cors});
+  const {data:membership}=await admin.from("household_members").select("user_id").eq("household_id",alert.household_id).eq("user_id",user.id).maybeSingle();
+  if(!membership) return Response.json({error:"Not a household member"},{status:403,headers:cors});
+  let title="WATER OVERFLOW ALERT!";
+  let body=`Overflow reported by ${alert.reporter_name} • ${alert.floor}. Please check the motor.`;
+  if(event_type==="alert" && alert.reporter_id!==user.id) return Response.json({error:"Only the reporter can publish this alert"},{status:403,headers:cors});
+  if(event_type==="response") {
+   const {data:response}=await admin.from("alert_responses").select("display_name,floor,message").eq("alert_id",alert_id).eq("user_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+   if(!response) return Response.json({error:"No matching response found"},{status:403,headers:cors});
+   title="WaterWatch household update";
+   body=`${response.display_name} (${response.floor}): ${response.message}`;
+  }
+  if(event_type==="resolved") {
+   if(alert.resolved_by!==user.id) return Response.json({error:"Only the resolver can publish this update"},{status:403,headers:cors});
+   title="WaterWatch alert resolved";
+   body=`The overflow alert was marked resolved by ${alert.reporter_name ? "a household member" : "the household"}.`;
+  }
+  if(!["alert","response","resolved"].includes(event_type)) return Response.json({error:"Invalid event type"},{status:400,headers:cors});
   const {data:members}=await admin.from("household_members").select("user_id").eq("household_id",alert.household_id).neq("user_id",user.id);
   const ids=(members??[]).map((m:{user_id:string})=>m.user_id);
   const {data:devices}=await admin.from("user_devices").select("fcm_token").in("user_id",ids);
@@ -24,7 +41,7 @@ Deno.serve(async (req) => {
   const results=await Promise.all(tokens.map(async(token:string)=>{
    const response=await fetch(`https://fcm.googleapis.com/v1/projects/${Deno.env.get("FIREBASE_PROJECT_ID")}/messages:send`,{
     method:"POST",headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},
-    body:JSON.stringify({message:{token,notification:{title:"WATER OVERFLOW ALERT!",body:`Overflow reported by ${alert.reporter_name} • ${alert.floor}. Please check the motor.`},data:{alert_id:alert.id},android:{priority:"high"}}})
+    body:JSON.stringify({message:{token,notification:{title,body},data:{alert_id:alert.id,event_type},android:{priority:"high"}}})
    });
    return {token,ok:response.ok};
   }));
