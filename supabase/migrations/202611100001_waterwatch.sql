@@ -144,7 +144,7 @@ begin
  insert into household_invites(household_id,code_hash,expires_at,created_by)
  values(p_household_id,encode(digest(code,'sha256'),'hex'),expiry,auth.uid()) returning id into iid;
  return query select iid,code,expiry;
-end $;
+end $$;
 
 create or replace function public.revoke_household_invite(p_invite_id uuid)
 returns void language plpgsql security definer set search_path=public
@@ -154,27 +154,27 @@ begin
  select household_id into hid from household_invites where id=p_invite_id;
  if hid is null or not public.is_household_admin(hid) then raise exception 'Invitation not found or not authorized'; end if;
  update household_invites set revoked_at=now() where id=p_invite_id and revoked_at is null;
-end $;
+end $$;
 
 create or replace function public.remove_household_member(p_household_id uuid,p_user_id uuid)
 returns void language plpgsql security definer set search_path=public
-as $
+as $$
 begin
  if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can remove members'; end if;
  if p_user_id=auth.uid() then raise exception 'Use household ownership transfer before removing yourself'; end if;
  delete from household_members where household_id=p_household_id and user_id=p_user_id;
  delete from user_devices where household_id=p_household_id and user_id=p_user_id;
-end $;
+end $$;
 
 create or replace function public.set_household_member_role(p_household_id uuid,p_user_id uuid,p_role text)
 returns void language plpgsql security definer set search_path=public
-as $
+as $$
 begin
  if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can change roles'; end if;
  if p_role not in ('admin','member') then raise exception 'Invalid role'; end if;
  update household_members set role=p_role where household_id=p_household_id and user_id=p_user_id;
  if not found then raise exception 'Member not found'; end if;
-end $;
+end $$;
 
 
 grant usage on schema public to authenticated;
