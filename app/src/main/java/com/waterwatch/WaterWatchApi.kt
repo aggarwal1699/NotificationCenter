@@ -25,7 +25,9 @@ class WaterWatchApi(context: Context) {
         client.newCall(builder.build()).execute().use { response ->
             val raw = response.body?.string().orEmpty()
             if (!response.isSuccessful) throw IllegalStateException("Server ${response.code}: $raw")
-            return if (raw.isBlank()) JSONObject() else if (raw.startsWith("[")) JSONObject().put("items", JSONArray(raw)) else JSONObject(raw)
+            if (raw.isBlank()) return JSONObject()
+            val parsed = org.json.JSONTokener(raw).nextValue()
+            return when (parsed) { is JSONObject -> parsed; is JSONArray -> JSONObject().put("items", parsed); else -> JSONObject().put("value", parsed) }
         }
     }
     fun signUp(email: String, password: String, name: String, floor: String): String {
