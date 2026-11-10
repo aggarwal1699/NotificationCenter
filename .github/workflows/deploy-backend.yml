@@ -26,7 +26,8 @@ jobs:
         run: |
           umask 077
           printf 'FIREBASE_PROJECT_ID=%s\n' "$FIREBASE_PROJECT_ID" > .env.waterwatch
-          printf 'FIREBASE_SERVICE_ACCOUNT_JSON=%s\n' "$FIREBASE_SERVICE_ACCOUNT_JSON" >> .env.waterwatch
+          FIREBASE_SERVICE_ACCOUNT_JSON_COMPACT="$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" | jq -c .)"
+          printf 'FIREBASE_SERVICE_ACCOUNT_JSON=%s\n' "$FIREBASE_SERVICE_ACCOUNT_JSON_COMPACT" >> .env.waterwatch
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file .env.waterwatch
           rm -f .env.waterwatch
           supabase functions deploy push-alert --project-ref "$SUPABASE_PROJECT_REF"
