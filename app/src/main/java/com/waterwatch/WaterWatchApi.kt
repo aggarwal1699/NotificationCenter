@@ -25,7 +25,10 @@ class WaterWatchApi(context: Context) {
         if (body != null) builder.method(method, body.toString().toRequestBody(jsonType)) else builder.method(method, null)
         client.newCall(builder.build()).execute().use { response ->
             val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {\n                if (response.code == 401 && auth && retryAuth && refreshSession()) return request(path, method, body, auth, false)\n                throw IllegalStateException("Server ${response.code}: $raw")\n            }
+            if (!response.isSuccessful) {
+                if (response.code == 401 && auth && retryAuth && refreshSession()) return request(path, method, body, auth, false)
+                throw IllegalStateException("Server ${response.code}: $raw")
+            }
             if (raw.isBlank()) return JSONObject()
             val parsed = org.json.JSONTokener(raw).nextValue()
             return when (parsed) { is JSONObject -> parsed; is JSONArray -> JSONObject().put("items", parsed); else -> JSONObject().put("value", parsed) }
