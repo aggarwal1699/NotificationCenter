@@ -135,7 +135,7 @@ end $$;
 create or replace function public.create_household_invite(p_household_id uuid,p_valid_days integer default 7)
 returns table(invite_id uuid,invite_code text,expires_at timestamptz)
 language plpgsql security definer set search_path=public
-as $
+as $$
 declare code text; iid uuid; expiry timestamptz;
 begin
  if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can create invitations'; end if;
@@ -148,7 +148,7 @@ end $$;
 
 create or replace function public.revoke_household_invite(p_invite_id uuid)
 returns void language plpgsql security definer set search_path=public
-as $
+as $$
 declare hid uuid;
 begin
  select household_id into hid from household_invites where id=p_invite_id;
