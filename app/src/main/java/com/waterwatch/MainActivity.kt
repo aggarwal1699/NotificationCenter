@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.*
 import com.google.firebase.messaging.FirebaseMessaging
 
@@ -65,7 +66,7 @@ private fun WaterWatchApp(initialAlertId: String? = null) {
             if (!loggedIn) {
                 item { OutlinedTextField(name, { name = it }, label = { Text("Your name") }, modifier = Modifier.fillMaxWidth()) }
                 item { OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(password, { password = it }, label = { Text("Password (min 6 characters)") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(password, { password = it }, label = { Text("Password (min 6 characters)") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()) }
                 item { OutlinedTextField(floor, { floor = it }, label = { Text("Your floor") }, modifier = Modifier.fillMaxWidth()) }
                 item { Button(enabled = !busy, onClick = { run { api.signUp(email, password, name, floor) } }, modifier = Modifier.fillMaxWidth()) { Text("Create account") } }
                 item { OutlinedButton(enabled = !busy, onClick = { run { api.signIn(email, password) } }, modifier = Modifier.fillMaxWidth()) { Text("Sign in") } }
