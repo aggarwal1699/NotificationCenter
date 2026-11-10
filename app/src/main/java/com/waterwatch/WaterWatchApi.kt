@@ -81,10 +81,12 @@ class WaterWatchApi(context: Context) {
     }
     fun respond(id: String, kind: String, text: String): String {
         request("/rest/v1/rpc/respond_to_alert", "POST", JSONObject().put("p_alert_id", id).put("p_response_type", kind).put("p_message", text))
+        runCatching { request("/functions/v1/push-alert", "POST", JSONObject().put("alert_id", id).put("event_type", "response")) }
         return "Response submitted."
     }
     fun resolve(id: String): String {
         request("/rest/v1/rpc/resolve_alert", "POST", JSONObject().put("p_alert_id", id))
+        runCatching { request("/functions/v1/push-alert", "POST", JSONObject().put("alert_id", id).put("event_type", "resolved")) }
         return "Alert marked resolved."
     }
     fun saveDeviceToken(token: String) {
