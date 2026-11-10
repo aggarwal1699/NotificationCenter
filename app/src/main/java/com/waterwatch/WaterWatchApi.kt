@@ -94,6 +94,7 @@ class WaterWatchApi(context: Context) {
         return "Alert marked resolved."
     }
     fun saveDeviceToken(token: String) {
+        prefs.edit().putString("fcm_token", token).apply()
         val hid = householdId ?: return
         val uid = prefs.getString("user_id", null) ?: return
         val body = JSONArray().put(JSONObject().put("user_id", uid).put("household_id", hid).put("fcm_token", token))
@@ -102,5 +103,17 @@ class WaterWatchApi(context: Context) {
             .header("Prefer", "resolution=merge-duplicates").post(body.toString().toRequestBody(jsonType)).build()
         client.newCall(req).execute().use { if (!it.isSuccessful) throw IllegalStateException("Device registration failed: ${it.code}") }
     }
-    fun signOut() { prefs.edit().clear().apply(); householdId = null }
+    fun signOut() {
+        val token = prefs.getString("fcm_token", null)
+        if (!token.isNullOrBlank() && hasSession()) runCatching {
+            val encoded = java.net.URLEncoder.encode(token, "UTF-8")
+            val req = Request.Builder().url(url("/rest/v1/user_devices?fcm_token=eq.$encoded"))
+                .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                .header("Authorization", "Bearer ${prefs.getString("access_token", "")}")
+                .delete().build()
+            client.newCall(req).execute().use { }
+        }
+        prefs.edit().clear().apply()
+        householdId = null
+    }
 }
