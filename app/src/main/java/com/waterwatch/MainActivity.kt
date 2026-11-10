@@ -45,7 +45,7 @@ private fun WaterWatchApp(initialAlertId: String? = null) {
         if (busy) return
         busy = true
         scope.launch {
-            try { message = withContext(Dispatchers.IO) { task() }; loggedIn = api.hasSession(); if (loggedIn) withContext(Dispatchers.IO) { alerts = api.getAlerts(); members = api.getMembers() } }
+            try { message = withContext(Dispatchers.IO) { task() }; loggedIn = api.hasSession(); if (loggedIn) withContext(Dispatchers.IO) { alerts = api.getAlerts().let { list -> if (initialAlertId != null) list.sortedBy { it.id != initialAlertId } else list }; members = api.getMembers() } }
             catch (e: Exception) { message = e.message ?: "Something went wrong" }
             finally { busy = false }
         }
