@@ -92,6 +92,7 @@ returns table(alert_id uuid) language plpgsql security definer set search_path=p
 as $$
 declare m household_members%rowtype; aid uuid;
 begin
+ perform pg_advisory_xact_lock(hashtextextended(p_household_id::text,0));
  select * into m from household_members where household_id=p_household_id and user_id=auth.uid();
  if m.user_id is null then raise exception 'Not a household member'; end if;
  if exists(select 1 from alerts where household_id=p_household_id and status in ('active','acknowledged','in_progress') and created_at>now()-interval '90 seconds') then
