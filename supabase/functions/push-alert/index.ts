@@ -26,12 +26,14 @@ Deno.serve(async (req) => {
   }
   if(event_type==="resolved") {
    if(alert.resolved_by!==user.id) return Response.json({error:"Only the resolver can publish this update"},{status:403,headers:cors});
+   const {data:resolver}=await admin.from("household_members").select("display_name").eq("household_id",alert.household_id).eq("user_id",user.id).maybeSingle();
    title="WaterWatch alert resolved";
-   body=`The overflow alert was marked resolved by ${alert.reporter_name ? "a household member" : "the household"}.`;
+   body=`The overflow alert was marked resolved by ${resolver?.display_name ?? "a household admin"}.`;
   }
   if(!["alert","response","resolved"].includes(event_type)) return Response.json({error:"Invalid event type"},{status:400,headers:cors});
   const {data:members}=await admin.from("household_members").select("user_id").eq("household_id",alert.household_id).neq("user_id",user.id);
   const ids=(members??[]).map((m:{user_id:string})=>m.user_id);
+  if(!ids.length) return Response.json({sent:0,message:"No other household members"},{headers:cors});
   const {data:devices}=await admin.from("user_devices").select("fcm_token").in("user_id",ids);
   const tokens=[...new Set((devices??[]).map((d:{fcm_token:string})=>d.fcm_token))];
   if(!tokens.length) return Response.json({sent:0,message:"No registered recipient devices"},{headers:cors});
