@@ -38,6 +38,7 @@ private fun WaterWatchApp() {
     var loggedIn by remember { mutableStateOf(api.hasSession()) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val isAdmin = members.any { it.id == api.currentUserId() && it.role == "admin" }
 
     fun run(task: suspend () -> String) {
         if (busy) return
@@ -77,7 +78,7 @@ private fun WaterWatchApp() {
                         Column(Modifier.padding(10.dp)) {
                             Text(member.name, style = MaterialTheme.typography.titleMedium)
                             Text("${member.floor} • ${member.role}")
-                            if (member.id != api.currentUserId()) {
+                            if (isAdmin && member.id != api.currentUserId()) {
                                 Row {
                                     TextButton(onClick = { run { api.changeRole(member.id, if (member.role == "admin") "member" else "admin") } }) { Text(if (member.role == "admin") "Make member" else "Make admin") }
                                     TextButton(onClick = { run { api.removeMember(member.id) } }) { Text("Remove") }
@@ -86,7 +87,7 @@ private fun WaterWatchApp() {
                         }
                     }
                 }
-                item { OutlinedButton(enabled = !busy, onClick = { run { api.createInvite() } }, modifier = Modifier.fillMaxWidth()) { Text("Generate invitation code (7 days)") } }
+                if (isAdmin) item { OutlinedButton(enabled = !busy, onClick = { run { api.createInvite() } }, modifier = Modifier.fillMaxWidth()) { Text("Generate invitation code (7 days)") } }
                 item { OutlinedTextField(householdName, { householdName = it }, label = { Text("Household name") }, modifier = Modifier.fillMaxWidth()) }
                 item { Button(enabled = !busy, onClick = { run { api.createHousehold(householdName, floor) } }, modifier = Modifier.fillMaxWidth()) { Text("Create household") } }
                 item { OutlinedTextField(inviteCode, { inviteCode = it }, label = { Text("Invitation code") }, modifier = Modifier.fillMaxWidth()) }
