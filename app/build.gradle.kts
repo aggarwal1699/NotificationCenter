@@ -12,7 +12,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 2
-        versionName = "0.2.0"
+        versionName = "0.2.1"
         val supabaseUrl = project.findProperty("SUPABASE_URL")?.toString() ?: "https://YOUR_PROJECT.supabase.co"
         val supabaseKey = project.findProperty("SUPABASE_ANON_KEY")?.toString() ?: "YOUR_SUPABASE_ANON_KEY"
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
