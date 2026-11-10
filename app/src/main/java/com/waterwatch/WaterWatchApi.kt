@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class AlertItem(val id: String, val status: String, val reporterName: String, val floor: String, val createdAt: String, val responses: List<String> = emptyList())
+data class MemberItem(val id: String, val name: String, val floor: String, val role: String)
 
 class WaterWatchApi(context: Context) {
     private val prefs = context.getSharedPreferences("waterwatch", Context.MODE_PRIVATE)
@@ -63,6 +64,34 @@ class WaterWatchApi(context: Context) {
         prefs.getString("fcm_token", null)?.let { saveDeviceToken(it) }
         return "Joined household successfully."
     }
+
+    fun currentUserId(): String = prefs.getString("user_id", "") ?: ""
+    fun getMembers(): List<MemberItem> {
+        val hid = householdId ?: return emptyList()
+        val data = request("/rest/v1/household_members?household_id=eq.$hid&select=user_id,display_name,floor,role&order=joined_at.asc")
+        val rows = data.optJSONArray("items") ?: JSONArray()
+        return (0 until rows.length()).map { i ->
+            val m = rows.getJSONObject(i)
+            MemberItem(m.getString("user_id"),m.optString("display_name"),m.optString("floor"),m.optString("role"))
+        }
+    }
+    fun createInvite(): String {
+        val hid = householdId ?: throw IllegalStateException("Create or join a household first.")
+        val res = request("/rest/v1/rpc/create_household_invite","POST",JSONObject().put("p_household_id",hid).put("p_valid_days",7))
+        val item = res.optJSONArray("items")?.optJSONObject(0) ?: res
+        return "New invitation code: ${item.optString("invite_code")} (valid for 7 days)"
+    }
+    fun removeMember(userId: String): String {
+        val hid = householdId ?: throw IllegalStateException("No household selected.")
+        request("/rest/v1/rpc/remove_household_member","POST",JSONObject().put("p_household_id",hid).put("p_user_id",userId))
+        return "Member removed."
+    }
+    fun changeRole(userId: String, role: String): String {
+        val hid = householdId ?: throw IllegalStateException("No household selected.")
+        request("/rest/v1/rpc/set_household_member_role","POST",JSONObject().put("p_household_id",hid).put("p_user_id",userId).put("p_role",role))
+        return "Member role updated."
+    }
+
     fun createAlert(): String {
         val hid = householdId ?: throw IllegalStateException("Create or join a household first.")
         val result = request("/rest/v1/rpc/create_water_alert", "POST", JSONObject().put("p_household_id", hid))
