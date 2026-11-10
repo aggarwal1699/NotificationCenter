@@ -33,6 +33,7 @@ private fun WaterWatchApp() {
     var householdName by remember { mutableStateOf("My Home") }
     var inviteCode by remember { mutableStateOf("") }
     var alerts by remember { mutableStateOf<List<AlertItem>>(emptyList()) }
+    var members by remember { mutableStateOf<List<MemberItem>>(emptyList()) }
     var message by remember { mutableStateOf("") }
     var loggedIn by remember { mutableStateOf(api.hasSession()) }
     var busy by remember { mutableStateOf(false) }
@@ -42,7 +43,7 @@ private fun WaterWatchApp() {
         if (busy) return
         busy = true
         scope.launch {
-            try { message = withContext(Dispatchers.IO) { task() }; loggedIn = api.hasSession(); if (loggedIn) withContext(Dispatchers.IO) { alerts = api.getAlerts() } }
+            try { message = withContext(Dispatchers.IO) { task() }; loggedIn = api.hasSession(); if (loggedIn) withContext(Dispatchers.IO) { alerts = api.getAlerts(); members = api.getMembers() } }
             catch (e: Exception) { message = e.message ?: "Something went wrong" }
             finally { busy = false }
         }
@@ -70,6 +71,22 @@ private fun WaterWatchApp() {
                 item { Text("Create an account first. Email confirmation may need to be completed before signing in.") }
             } else {
                 item { Text("Household setup", style = MaterialTheme.typography.titleLarge) }
+                item { Text("Members: ${members.size}", style = MaterialTheme.typography.titleMedium) }
+                items(members) { member ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(member.name, style = MaterialTheme.typography.titleMedium)
+                            Text("${member.floor} • ${member.role}")
+                            if (member.id != api.currentUserId()) {
+                                Row {
+                                    TextButton(onClick = { run { api.changeRole(member.id, if (member.role == "admin") "member" else "admin") } }) { Text(if (member.role == "admin") "Make member" else "Make admin") }
+                                    TextButton(onClick = { run { api.removeMember(member.id) } }) { Text("Remove") }
+                                }
+                            }
+                        }
+                    }
+                }
+                item { OutlinedButton(enabled = !busy, onClick = { run { api.createInvite() } }, modifier = Modifier.fillMaxWidth()) { Text("Generate invitation code (7 days)") } }
                 item { OutlinedTextField(householdName, { householdName = it }, label = { Text("Household name") }, modifier = Modifier.fillMaxWidth()) }
                 item { Button(enabled = !busy, onClick = { run { api.createHousehold(householdName, floor) } }, modifier = Modifier.fillMaxWidth()) { Text("Create household") } }
                 item { OutlinedTextField(inviteCode, { inviteCode = it }, label = { Text("Invitation code") }, modifier = Modifier.fillMaxWidth()) }
