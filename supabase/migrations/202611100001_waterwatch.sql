@@ -56,6 +56,7 @@ create policy "household members read responses" on public.alert_responses for s
 create policy "users read own devices" on public.user_devices for select using(user_id=auth.uid());
 create policy "users upsert own devices" on public.user_devices for insert with check(user_id=auth.uid() and public.is_household_member(household_id));
 create policy "users update own devices" on public.user_devices for update using(user_id=auth.uid()) with check(user_id=auth.uid() and public.is_household_member(household_id));
+create policy "users delete own devices" on public.user_devices for delete using(user_id=auth.uid());
 
 create or replace function public.create_household(p_name text,p_floor text default 'Other')
 returns table(household_id uuid,invite_code text) language plpgsql security definer set search_path=public
