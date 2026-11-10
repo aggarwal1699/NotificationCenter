@@ -50,6 +50,7 @@ class WaterWatchApi(context: Context) {
         val item = res.optJSONArray("items")?.optJSONObject(0) ?: res
         householdId = item.optString("household_id")
         prefs.edit().putString("household_id", householdId).putString("floor", floor).apply()
+        prefs.getString("fcm_token", null)?.let { saveDeviceToken(it) }
         return "Household created. Invitation code: ${item.optString("invite_code")}"
     }
     fun joinHousehold(code: String, floor: String): String {
@@ -57,12 +58,13 @@ class WaterWatchApi(context: Context) {
         val res = request("/rest/v1/rpc/join_household", "POST", JSONObject().put("p_code", code).put("p_floor", floor))
         householdId = res.optJSONArray("items")?.optJSONObject(0)?.optString("household_id") ?: res.optString("household_id")
         prefs.edit().putString("household_id", householdId).putString("floor", floor).apply()
+        prefs.getString("fcm_token", null)?.let { saveDeviceToken(it) }
         return "Joined household successfully."
     }
     fun createAlert(): String {
         val hid = householdId ?: throw IllegalStateException("Create or join a household first.")
         val result = request("/rest/v1/rpc/create_water_alert", "POST", JSONObject().put("p_household_id", hid))
-        val alertId = result.optJSONArray("items")?.optString(0) ?: result.optString("id")
+        val alertId = result.optJSONArray("items")?.optJSONObject(0)?.optString("alert_id") ?: result.optString("alert_id")
         if (alertId.isNotBlank()) runCatching { request("/functions/v1/push-alert", "POST", JSONObject().put("alert_id", alertId)) }
         return "Overflow alert created. Push delivery attempted for registered household devices."
     }
