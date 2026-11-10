@@ -83,10 +83,15 @@ private fun WaterWatchApp() {
                             Text("WATER OVERFLOW • ${alert.status.uppercase()}", style = MaterialTheme.typography.titleMedium)
                             Text("Reported by ${alert.reporterName} • ${alert.floor}")
                             Text(alert.createdAt)
+                            alert.responses.forEach { response -> Text("• $response", style = MaterialTheme.typography.bodySmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 TextButton(onClick = { run { api.respond(alert.id, "motor_off", "Motor switched OFF") } }) { Text("Motor OFF") }
                                 TextButton(onClick = { run { api.respond(alert.id, "switching_off", "I am switching it OFF") } }) { Text("Switching OFF") }
                                 TextButton(onClick = { run { api.respond(alert.id, "not_my_floor", "Motor not ON from my floor") } }) { Text("Not my floor") }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = { run { api.respond(alert.id, "not_responsible", "Someone else may have switched it ON") } }) { Text("Not responsible") }
+                                TextButton(onClick = { run { api.respond(alert.id, "need_help", "Need assistance") } }) { Text("Need help") }
                             }
                             TextButton(onClick = { run { api.resolve(alert.id) } }) { Text("Mark resolved (admin)") }
                         }
