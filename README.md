@@ -9,7 +9,7 @@ A lightweight Android app for household water-overflow alerts. Family members ma
 - GitHub Actions debug APK builds
 
 ## Quick start
-See [docs/SETUP.md](docs/SETUP.md) for Supabase, Firebase, secrets and build instructions.
+See [docs/SETUP.md](docs/SETUP.md) for Supabase, Firebase, secrets and build instructions. See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) for the multi-user verification checklist.
 
 ## Status
 Initial development scaffold committed. It is not yet deployed, fully configured, or tested on physical Android devices. FCM requires Firebase configuration and server-side service-account secrets.
