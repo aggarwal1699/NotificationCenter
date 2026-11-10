@@ -21,10 +21,10 @@ This is a manual integration checklist. It must be run against a configured Supa
 - [ ] Confirm the alert is created once with reporter, floor and timestamp.
 - [ ] Confirm User B's registered device receives the FCM notification while app is foregrounded.
 - [ ] Repeat with app backgrounded and terminated.
-- [ ] User B submits `not_my_floor`; verify a response row is stored.
+- [ ] User B submits `not_my_floor`; verify a response row is stored and the other members receive an update notification.
 - [ ] User B submits `switching_off`; verify alert moves to `in_progress`.
 - [ ] A member submits `motor_off`; verify the response says motor off but does not falsely close the alert.
-- [ ] Admin resolves; verify resolver and timestamp are recorded.
+- [ ] Admin resolves; verify resolver and timestamp are recorded and other members receive a resolution notification.
 - [ ] Confirm a non-admin cannot resolve.
 - [ ] Confirm a duplicate alert inside the 90-second cooldown is rejected.
 - [ ] Confirm an unrelated user cannot read the household's alerts or responses.
