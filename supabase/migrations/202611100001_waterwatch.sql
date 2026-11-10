@@ -129,6 +129,55 @@ begin
  update alerts set status='resolved',resolved_at=now(),resolved_by=auth.uid() where id=a.id;
 end $$;
 
+
+create or replace function public.create_household_invite(p_household_id uuid,p_valid_days integer default 7)
+returns table(invite_id uuid,invite_code text,expires_at timestamptz)
+language plpgsql security definer set search_path=public
+as $
+declare code text; iid uuid; expiry timestamptz;
+begin
+ if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can create invitations'; end if;
+ if p_valid_days<1 or p_valid_days>30 then raise exception 'Validity must be between 1 and 30 days'; end if;
+ code:=upper(substr(encode(gen_random_bytes(8),'hex'),1,10)); expiry:=now()+make_interval(days=>p_valid_days);
+ insert into household_invites(household_id,code_hash,expires_at,created_by)
+ values(p_household_id,encode(digest(code,'sha256'),'hex'),expiry,auth.uid()) returning id into iid;
+ return query select iid,code,expiry;
+end $;
+
+create or replace function public.revoke_household_invite(p_invite_id uuid)
+returns void language plpgsql security definer set search_path=public
+as $
+declare hid uuid;
+begin
+ select household_id into hid from household_invites where id=p_invite_id;
+ if hid is null or not public.is_household_admin(hid) then raise exception 'Invitation not found or not authorized'; end if;
+ update household_invites set revoked_at=now() where id=p_invite_id and revoked_at is null;
+end $;
+
+create or replace function public.remove_household_member(p_household_id uuid,p_user_id uuid)
+returns void language plpgsql security definer set search_path=public
+as $
+begin
+ if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can remove members'; end if;
+ if p_user_id=auth.uid() then raise exception 'Use household ownership transfer before removing yourself'; end if;
+ delete from household_members where household_id=p_household_id and user_id=p_user_id;
+ delete from user_devices where household_id=p_household_id and user_id=p_user_id;
+end $;
+
+create or replace function public.set_household_member_role(p_household_id uuid,p_user_id uuid,p_role text)
+returns void language plpgsql security definer set search_path=public
+as $
+begin
+ if not public.is_household_admin(p_household_id) then raise exception 'Only household admins can change roles'; end if;
+ if p_role not in ('admin','member') then raise exception 'Invalid role'; end if;
+ update household_members set role=p_role where household_id=p_household_id and user_id=p_user_id;
+ if not found then raise exception 'Member not found'; end if;
+end $;
+
+grant execute on function public.create_household_invite(uuid,integer) to authenticated;
+grant execute on function public.revoke_household_invite(uuid) to authenticated;
+grant execute on function public.remove_household_member(uuid,uuid) to authenticated;
+grant execute on function public.set_household_member_role(uuid,uuid,text) to authenticated;
 grant execute on function public.create_household(text,text) to authenticated;
 grant execute on function public.join_household(text,text) to authenticated;
 grant execute on function public.create_water_alert(uuid) to authenticated;
