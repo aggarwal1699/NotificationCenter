@@ -18,12 +18,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (android.os.Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 41)
-        setContent { MaterialTheme { WaterWatchApp() } }
+        setContent { MaterialTheme { WaterWatchApp(intent.getStringExtra("alert_id")) } }
     }
 }
 
 @Composable
-private fun WaterWatchApp() {
+private fun WaterWatchApp(initialAlertId: String? = null) {
     val context = LocalContext.current
     val api = remember { WaterWatchApi(context) }
     var email by remember { mutableStateOf("") }
@@ -94,6 +94,7 @@ private fun WaterWatchApp() {
                 item { OutlinedButton(enabled = !busy, onClick = { run { api.joinHousehold(inviteCode, floor) } }, modifier = Modifier.fillMaxWidth()) { Text("Join household") } }
                 item { Button(enabled = !busy, onClick = { run { alerts = api.getAlerts(); "Alerts refreshed" } }, modifier = Modifier.fillMaxWidth()) { Text("Refresh alerts") } }
                 item { Button(enabled = !busy, onClick = { run { api.createAlert() } }, modifier = Modifier.fillMaxWidth().height(64.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("TRIGGER WATER OVERFLOW ALERT", style = MaterialTheme.typography.titleMedium) } }
+                if (initialAlertId != null) item { Text("Opened alert: $initialAlertId", style = MaterialTheme.typography.titleMedium) }
                 item { Text("Alert history", style = MaterialTheme.typography.titleLarge) }
                 items(alerts) { alert ->
                     Card(Modifier.fillMaxWidth()) {
