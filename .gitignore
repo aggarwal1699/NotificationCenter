@@ -1,0 +1,10 @@
+.gradle/
+local.properties
+.idea/
+.DS_Store
+**/build/
+app/google-services.json
+*.jks
+*.keystore
+.env
+supabase/.temp/
