@@ -18,7 +18,7 @@ class WaterWatchMessagingService : FirebaseMessagingService() {
         val channelId = "water_overflow_alerts"
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(channelId, "Water overflow alerts", NotificationManager.IMPORTANCE_HIGH))
-        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).putExtra("alert_id", message.data["alert_id"]), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val body = message.notification?.body ?: "Please check the motor and switch it OFF if running."
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
