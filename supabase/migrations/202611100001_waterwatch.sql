@@ -176,6 +176,24 @@ begin
  if not found then raise exception 'Member not found'; end if;
 end $;
 
+
+grant usage on schema public to authenticated;
+grant select on public.households,public.household_members,public.alerts,public.alert_responses to authenticated;
+grant select,insert,update,delete on public.user_devices to authenticated;
+revoke all on public.households,public.household_members,public.household_invites,public.alerts,public.alert_responses,public.user_devices from anon;
+
+revoke all on function public.create_household(text,text) from public,anon;
+revoke all on function public.join_household(text,text) from public,anon;
+revoke all on function public.create_water_alert(uuid) from public,anon;
+revoke all on function public.respond_to_alert(uuid,text,text) from public,anon;
+revoke all on function public.resolve_alert(uuid) from public,anon;
+revoke all on function public.create_household_invite(uuid,integer) from public,anon;
+revoke all on function public.revoke_household_invite(uuid) from public,anon;
+revoke all on function public.remove_household_member(uuid,uuid) from public,anon;
+revoke all on function public.set_household_member_role(uuid,uuid,text) from public,anon;
+revoke all on function public.is_household_member(uuid) from public,anon;
+revoke all on function public.is_household_admin(uuid) from public,anon;
+
 grant execute on function public.create_household_invite(uuid,integer) to authenticated;
 grant execute on function public.revoke_household_invite(uuid) to authenticated;
 grant execute on function public.remove_household_member(uuid,uuid) to authenticated;
