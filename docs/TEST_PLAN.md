@@ -1,6 +1,6 @@
 # WaterWatch verification plan
 
-This is a manual integration checklist. It must be run against a configured Supabase project and at least two Android devices; no real backend/device test has been executed by the coding agent.
+This is a manual integration checklist. It must be run against a configured Supabase project and at least two Android devices; no real backend/device test has been executed by the coding agent. The Android CI workflow also runs four JUnit tests covering the client-side alert lifecycle transition contract.
 
 ## Setup gate
 - [ ] Apply the database migration to a fresh Supabase project.
