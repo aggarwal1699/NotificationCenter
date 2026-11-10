@@ -33,7 +33,17 @@ supabase secrets set FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",..
 ``
 Ensure the function has `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` secrets. Create a Firebase service account permitted to send FCM messages. Store its JSON only as a Supabase secret, never in Git or the APK.
 
-## 4. Build APK
+## 4. Deploy backend through GitHub Actions
+Add these repository Actions secrets, then run Actions > Deploy WaterWatch backend > Run workflow:
+- `SUPABASE_ACCESS_TOKEN` (personal access token from Supabase)
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_DB_PASSWORD`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (complete service-account JSON; store only as a GitHub secret)
+
+The workflow links the project, applies SQL migrations, uploads the Firebase sender credentials as Supabase secrets, and deploys the `push-alert` Edge Function. Do not put secrets in source files or commit them.
+
+## 5. Build APK
 Open in Android Studio and run `app > Tasks > build > assembleDebug`, or run `gradle :app:assembleDebug`.
 For GitHub Actions, add repository secrets:
 - `SUPABASE_URL`
