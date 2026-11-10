@@ -18,14 +18,14 @@ class WaterWatchApi(context: Context) {
     private var householdId: String? = prefs.getString("household_id", null)
     fun hasSession() = !prefs.getString("access_token", null).isNullOrBlank()
     private fun url(path: String) = BuildConfig.SUPABASE_URL.trimEnd('/') + path
-    private fun request(path: String, method: String = "GET", body: JSONObject? = null, auth: Boolean = true): JSONObject {
+    private fun request(path: String, method: String = "GET", body: JSONObject? = null, auth: Boolean = true, retryAuth: Boolean = true): JSONObject {
         val builder = Request.Builder().url(url(path)).header("apikey", BuildConfig.SUPABASE_ANON_KEY)
         if (auth) prefs.getString("access_token", null)?.let { builder.header("Authorization", "Bearer $it") }
         else builder.header("Authorization", "Bearer ${BuildConfig.SUPABASE_ANON_KEY}")
         if (body != null) builder.method(method, body.toString().toRequestBody(jsonType)) else builder.method(method, null)
         client.newCall(builder.build()).execute().use { response ->
             val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) throw IllegalStateException("Server ${response.code}: $raw")
+            if (!response.isSuccessful) {\n                if (response.code == 401 && auth && retryAuth && refreshSession()) return request(path, method, body, auth, false)\n                throw IllegalStateException("Server ${response.code}: $raw")\n            }
             if (raw.isBlank()) return JSONObject()
             val parsed = org.json.JSONTokener(raw).nextValue()
             return when (parsed) { is JSONObject -> parsed; is JSONArray -> JSONObject().put("items", parsed); else -> JSONObject().put("value", parsed) }
@@ -38,16 +38,25 @@ class WaterWatchApi(context: Context) {
         val id = user.optString("id")
         if (id.isNotBlank()) prefs.edit().putString("user_id", id).putString("display_name", name).putString("floor", floor).apply()
         val token = result.optString("access_token")
-        if (token.isNotBlank()) prefs.edit().putString("access_token", token).apply()
+        if (token.isNotBlank()) prefs.edit().putString("access_token", token).putString("refresh_token", result.optString("refresh_token")).apply()
         return if (token.isBlank()) "Account created. Verify your email, then sign in." else "Account created and signed in."
     }
     fun signIn(email: String, password: String): String {
         val result = request("/auth/v1/token?grant_type=password", "POST", JSONObject().put("email", email).put("password", password), false)
         val user = result.getJSONObject("user")
         val name = user.optJSONObject("user_metadata")?.optString("name")?.takeIf { it.isNotBlank() } ?: email.substringBefore("@")
-        prefs.edit().putString("access_token", result.getString("access_token")).putString("user_id", user.getString("id")).putString("display_name", name).apply()
+        prefs.edit().putString("access_token", result.getString("access_token")).putString("refresh_token", result.optString("refresh_token")).putString("user_id", user.getString("id")).putString("display_name", name).apply()
         return "Signed in. Create or join your household."
     }
+    private fun refreshSession(): Boolean {
+        val refresh = prefs.getString("refresh_token", null) ?: return false
+        return runCatching {
+            val result = request("/auth/v1/token?grant_type=refresh_token", "POST", JSONObject().put("refresh_token", refresh), false)
+            prefs.edit().putString("access_token", result.getString("access_token")).putString("refresh_token", result.optString("refresh_token", refresh)).apply()
+            true
+        }.getOrDefault(false)
+    }
+
     fun createHousehold(name: String, floor: String): String {
         val res = request("/rest/v1/rpc/create_household", "POST", JSONObject().put("p_name", name).put("p_floor", floor))
         val item = res.optJSONArray("items")?.optJSONObject(0) ?: res
