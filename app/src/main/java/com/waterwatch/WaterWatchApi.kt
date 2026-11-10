@@ -8,7 +8,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class AlertItem(val id: String, val status: String, val reporterName: String, val floor: String, val createdAt: String)
+data class AlertItem(val id: String, val status: String, val reporterName: String, val floor: String, val createdAt: String, val responses: List<String> = emptyList())
 
 class WaterWatchApi(context: Context) {
     private val prefs = context.getSharedPreferences("waterwatch", Context.MODE_PRIVATE)
@@ -72,11 +72,15 @@ class WaterWatchApi(context: Context) {
     }
     fun getAlerts(): List<AlertItem> {
         val hid = householdId ?: return emptyList()
-        val data = request("/rest/v1/alerts?household_id=eq.$hid&select=id,status,created_at,reporter_name,floor&order=created_at.desc&limit=30")
+        val data = request("/rest/v1/alerts?household_id=eq.$hid&select=id,status,created_at,reporter_name,floor,alert_responses(display_name,floor,response_type,message,created_at)&order=created_at.desc&limit=30")
         val rows = data.optJSONArray("items") ?: JSONArray()
         return (0 until rows.length()).map { i ->
             val o = rows.getJSONObject(i)
-            AlertItem(o.getString("id"), o.optString("status", "active"), o.optString("reporter_name", "Member"), o.optString("floor", "Other"), o.optString("created_at"))
+            AlertItem(o.getString("id"), o.optString("status", "active"), o.optString("reporter_name", "Member"), o.optString("floor", "Other"), o.optString("created_at"),
+                (0 until (o.optJSONArray("alert_responses")?.length() ?: 0)).map { j ->
+                    val r = o.getJSONArray("alert_responses").getJSONObject(j)
+                    "${r.optString("display_name")} (${r.optString("floor")}): ${r.optString("message")}"
+                })
         }
     }
     fun respond(id: String, kind: String, text: String): String {
