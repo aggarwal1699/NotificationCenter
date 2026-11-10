@@ -109,7 +109,7 @@ returns uuid language plpgsql security definer set search_path=public
 as $$
 declare a alerts%rowtype; m household_members%rowtype; rid uuid; next_status text;
 begin
- select * into a from alerts where id=p_alert_id;
+ select * into a from alerts where id=p_alert_id for update;
  if a.id is null or not public.is_household_member(a.household_id) then raise exception 'Alert not found'; end if;
  select * into m from household_members where household_id=a.household_id and user_id=auth.uid();
  if a.status in ('resolved','dismissed') then raise exception 'Alert is already closed'; end if;
